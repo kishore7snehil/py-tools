@@ -1,8 +1,9 @@
 from typing import Any, Dict, Optional
 from fastapi import Request, Response
 
-from auth0_server_python.src.store.abstract import StateStore
-from auth0_server_python.src.auth_types import StateData
+#Imported from auth0-server-python
+from store.abstract import StateStore
+from auth_types import StateData
 
 class StatefulStateStore(StateStore):
     """

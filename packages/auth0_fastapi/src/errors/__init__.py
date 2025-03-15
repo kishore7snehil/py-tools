@@ -1,6 +1,8 @@
 from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
-from auth0_server_python.src.error import (
+
+#Imported from auth0-server-python
+from error import (
     Auth0Error,
     MissingTransactionError,
     ApiError,

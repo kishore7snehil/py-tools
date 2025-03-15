@@ -1,8 +1,9 @@
 from fastapi import Request, Response
 from typing import Any, Dict, Optional
 
-from auth0_server_python.src.store.abstract import TransactionStore
-from auth0_server_python.src.auth_types import TransactionData
+#Imported from auth0-server-python
+from store.abstract import TransactionStore
+from auth_types import TransactionData
 
 class CookieTransactionStore(TransactionStore):
     """
@@ -38,7 +39,7 @@ class CookieTransactionStore(TransactionStore):
         self, 
         identifier: str, 
         options: Optional[Dict[str, Any]] = None
-    ) -> Optional[TransactionData]:
+    ) -> None:
         """
         Retrieves and parses the transaction data from the cookie.
         Expects 'request' in options.

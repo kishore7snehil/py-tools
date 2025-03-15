@@ -7,7 +7,7 @@ from .config import Auth0Config
 import json
 
 from .auth.auth_client import AuthClient
-from .server.routes import router
+from .server.routes import router, register_auth_routes
 from .errors import register_exception_handlers
 
 
@@ -40,6 +40,8 @@ app.state.config = config
 # Instantiate the AuthClient with the configuration
 auth_client = AuthClient(config)
 app.state.auth_client = auth_client
+
+register_auth_routes(router, config)
 
 # Include the authentication routes
 app.include_router(router)

@@ -40,7 +40,7 @@ from auth_types import (
     LogoutOptions
 )
 from utils import PKCE, State, URL
-from store.memory import MemoryStateStore, MemoryTransactionStore
+
 
 # Generic type for store options
 TStoreOptions = TypeVar('TStoreOptions')
@@ -92,8 +92,8 @@ class ServerClient(Generic[TStoreOptions]):
         self._default_authorization_params = authorization_params or {}
         
         # Initialize stores
-        self._transaction_store = transaction_store or MemoryTransactionStore(secret)
-        self._state_store = state_store or MemoryStateStore(secret, state_absolute_duration)
+        self._transaction_store = transaction_store
+        self._state_store = state_store
         self._transaction_identifier = transaction_identifier
         self._state_identifier = state_identifier
         
@@ -517,7 +517,7 @@ class ServerClient(Generic[TStoreOptions]):
         await self._state_store.delete(self._state_identifier, store_options)
         
         # Use the URL helper to create the logout URL.
-        logout_url = URL.create_logout_url(self._domain, self._client_id, options.get("return_to"))
+        logout_url = URL.create_logout_url(self._domain, self._client_id, options.return_to)
         
         return logout_url
     

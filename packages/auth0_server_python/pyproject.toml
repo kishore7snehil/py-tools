@@ -8,7 +8,12 @@ license = "MIT"
 
 # Tells Poetry to look for a package named `auth_server` under `src/`
 packages = [
-  { include = "auth_server", from = "src" }
+  { include = "auth_server", from = "src" },
+  { include = "auth_types", from = "src" },
+  { include = "encryption", from = "src" },
+  { include = "error", from = "src" },
+  { include = "store", from = "src" },
+  { include = "utils", from = "src" }
 ]
 
 [tool.poetry.dependencies]

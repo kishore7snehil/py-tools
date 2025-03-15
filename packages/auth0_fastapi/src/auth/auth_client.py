@@ -1,14 +1,17 @@
-from auth0_server_python.src.auth_server.server_client import ServerClient
+
 from fastapi import Request, Response
-from auth0_server_python.src.auth_types import (
+
+from stores.cookie_transaction_store import CookieTransactionStore
+from stores.stateless_state_store import StatelessStateStore
+
+from config import Auth0Config
+
+#Imported from auth0-server-python
+from auth_server.server_client import ServerClient
+from auth_types import (
     StartInteractiveLoginOptions,
     LogoutOptions
 )
-
-from ..stores.cookie_transaction_store import CookieTransactionStore
-from ..stores.stateless_state_store import StatelessStateStore
-
-from ..config import Auth0Config
 
 class AuthClient:
     """
@@ -45,21 +48,21 @@ class AuthClient:
             },
         )
     
-    async def start_login(self, request: Request, app_state: dict = None, store_options: dict = None) -> str:
+    async def start_login(self, app_state: dict = None, store_options: dict = None) -> str:
         """
         Initiates the interactive login process.
         Optionally, an app_state dictionary can be passed to persist additional state.
         Returns the authorization URL to redirect the user.
         """
         options = StartInteractiveLoginOptions(app_state=app_state)
-        return await self.client.start_interactive_login(options, request=request, store_options=store_options)
+        return await self.client.start_interactive_login(options, store_options=store_options)
     
-    async def complete_login(self, request: Request, callback_url: str, store_options: dict = None) -> dict:
+    async def complete_login(self, callback_url: str, store_options: dict = None) -> dict:
         """
         Completes the interactive login process using the callback URL.
         Returns a dictionary with the session state data.
         """
-        return await self.client.complete_interactive_login(callback_url, request, store_options=store_options)
+        return await self.client.complete_interactive_login(callback_url, store_options=store_options)
     
     async def logout(self, return_to: str = None, store_options: dict = None ) -> str:
         """

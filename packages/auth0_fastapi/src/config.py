@@ -13,12 +13,12 @@ class Auth0Config(BaseModel):
     audience: Optional[str] = Field(None, description="Target audience for tokens (if applicable)")
     authorization_params: Optional[Dict[str, Any]] = Field(None, description="Additional parameters to include in the authorization request")
     pushed_authorization_requests: bool = Field(False, description="Whether to use pushed authorization requests")
-    mount_routes: bool = Field(True, description="Flag to mount the default auth routes")
-    cookie_name: str = Field("auth0_session", description="Name of the cookie storing session data")
+    # Route-mounting flags with desired defaults
+    mount_routes: bool = Field(True, description="Controls /auth/* routes: login, logout, callback, backchannel-logout")
+    mount_connect_routes: bool = Field(False, description="Controls /auth/connect routes (account-linking)")
+    #Cookie Settings
+    cookie_name: str = Field("_a0_session", description="Name of the cookie storing session data")
     session_expiration: int = Field(259200, description="Session expiration time in seconds (default: 3 days)")
-    # Optional: add additional configuration like signing keys/algorithms if needed
-    client_assertion_signing_key: Optional[str] = Field(None, description="Signing key for client assertions, if applicable")
-    client_assertion_signing_alg: Optional[str] = Field(None, description="Signing algorithm for client assertions, if applicable")
 
     class Config:
         populate_by_name = True

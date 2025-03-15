@@ -1,10 +1,6 @@
-The Auth0 FastAPI SDK is a library for implementing user authentication in FastAPI applications.
+The Auth0-FastAPI SDK is a library for implementing user authentication in FastAPI web applications using [Auth0](https://auth0.com).
 
-![Release](https://img.shields.io/pypi/v/auth0-python)
-[![Codecov](https://img.shields.io/codecov/c/github/auth0/auth0-python)](https://codecov.io/gh/auth0/auth0-python)
-![Downloads](https://img.shields.io/pypi/dw/auth0-python)
-[![License](https://img.shields.io/:license-MIT-blue.svg?style=flat)](https://opensource.org/licenses/MIT)
-[![CircleCI](https://img.shields.io/circleci/build/github/auth0/auth0-python)](https://circleci.com/gh/auth0/auth0-python)
+![Release](https://img.shields.io/pypi/v/auth0-python)[![Codecov](https://img.shields.io/codecov/c/github/auth0/auth0-python)](https://codecov.io/gh/auth0/auth0-python)![Downloads](https://img.shields.io/pypi/dw/auth0-python)[![License](https://img.shields.io/:license-MIT-blue.svg?style=flat)](https://opensource.org/licenses/MIT)[![CircleCI](https://img.shields.io/circleci/build/github/auth0/auth0-python)](https://circleci.com/gh/auth0/auth0-python)
 
 <div>
 📚 <a href="#documentation">Documentation</a> - 🚀 <a href="#getting-started">Getting started</a> - 💻 <a href="#api-reference">API reference</a> - 💬 <a href="#feedback">Feedback</a>
@@ -12,76 +8,241 @@ The Auth0 FastAPI SDK is a library for implementing user authentication in FastA
 
 
 ## Documentation
-- [Docs site](https://www.auth0.com/docs) - explore our docs site and learn more about Auth0.
 
+- [QuickStart](https://auth0.com/docs/quickstart/webapp/fastify)- our guide for adding Auth0 to your Fastify app.
+- [Examples](https://github.com/auth0/auth0-server-python/blob/main/packages/auth0-fastify/examples) - examples for your different use cases.
+- [Docs Site](https://auth0.com/docs) - explore our docs site and learn more about Auth0.
 
 ## Getting Started
 
-## Installation
+- [1. Features](#1-features)
+- [2. Installation](#2-installation)
+- [3. Setup](#2-setup)
+  - [Minimal Setup](#minimal)
+  - [Advanced](#advanced)
+- [4. Routes](#4-routes)
+  - [Protecting Routes](#protecting-routes)
 
-```bash
-pip install git+https://github.com/kishore7snehil/fastapi-python.git
+### 1. Features
+
+- Fully Integrated Auth Flows : Automatic routes for /auth/login, /auth/logout, /auth/callback, etc.
+- Session-Based :Uses secure cookies to store user sessions, either stateless (all data in cookie) or stateful (data in Redis / database).
+- Account Linking: Optional routes for linking multiple social or username/password accounts into a single Auth0 profile.
+- Backchannel Logout : Receive logout tokens from Auth0 to invalidate sessions server-side.
+- Extensible : Swap in your own store implementations or tune existing ones (cookie name, expiration, etc.).
+
+### 2. Installation
+
+```shell
+pip install auth0-fastapi
 ```
 
-## Running Tests
+> _Requirements: Python 3.8+ and FastAPI. A typical production environment also requires HTTPS so that secure cookies (secure=True) can be sent._
 
-1. **Install Dependencies**
-
-   Use [Poetry](https://python-poetry.org/) to install the required dependencies:
-
-   ```sh
-   $ poetry install
-   ```
-
-2. **Run the tests**
-
-   ```sh
-   $ poetry run pytest tests
-   ```
-
-## Usage
-
-Create a .env file with the following deatils:
-
-```
-AUTH0_DOMAIN='<>'
-AUTH0_CLIENT_ID='<>'
-AUTH0_CLIENT_SECRET='<>'
-AUTH0_REDIRECT_URI='<>'
-AUTH0_SECRET_KEY='ALongRandomlyGeneratedString'
-AUTH0_APP_BASE_URL='<>'
-```
-
-Create a python script for accessing the routes, link and tool token example:
+### 3. Setup
+#### Minimal
 
 ```python
-from dotenv import find_dotenv, load_dotenv
-
-from fastapi import FastAPI
+# main.py
+import os
 import uvicorn
+from fastapi import FastAPI
+from starlette.middleware.sessions import SessionMiddleware
 
-ENV_FILE = find_dotenv()
-if ENV_FILE:
-    load_dotenv(ENV_FILE)
+from auth0_fastapi.config import Auth0Config
+from auth0_fastapi.auth.auth_client import AuthClient
+from auth0_fastapi.server.routes import router
+from auth0_fastapi.errors import register_exception_handlers
+
+app = FastAPI(title="Auth0-FastAPI Example")
+
+# 1) Add Session Middleware, needed if you're storing data in (or rely on) session cookies
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET"))
+
+# 2) Create an Auth0Config with your Auth0 credentials & app settings
+config = Auth0Config(
+    domain="YOUR_AUTH0_DOMAIN",          # e.g., "dev-1234abcd.us.auth0.com"
+    clientId="YOUR_CLIENT_ID",
+    clientSecret="YOUR_CLIENT_SECRET",
+    appBaseUrl="http://localhost:3000",  # or your production URL
+    secret=os.environ.get("SESSION_SECRET"),
+    mount_routes=True,  # mounts /auth/login, /auth/logout, /auth/callback, /auth/backchannel-logout
+)
+
+# 3) Instantiate the AuthClient
+auth_client = AuthClient(config)
+
+# Attach to the FastAPI app state so internal routes can access it
+app.state.config = config
+app.state.auth_client = auth_client
+
+# 4) Conditionally register routes
+register_auth_routes((router, config))
+
+# 5) Include the SDK’s default routes
+app.include_router(router)
 
 
-# Create user's FastAPI app
-app = FastAPI()
+@app.get("/")
+def home():
+    return {"message": "Hello, Auth0-FastAPI!"}
 
-# Create auth client with the user's app
-auth_client = Auth(app=app, store="<store_name>")
-
-
-# Start server as the user wants
 if __name__ == "__main__":
-    import threading
-    server_thread = threading.Thread(
-        target=uvicorn.run,
-        args=(app,),
-        kwargs={"host": "0.0.0.0", "port": 3000}
-    )
-    server_thread.start()
+    uvicorn.run(app, host="0.0.0.0", port=3000)
+
 ```
+#### Auth0 Dashboard Configurations
+- The `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, and `AUTH0_CLIENT_SECRET` can be obtained from the [Auth0 Dashboard](https://manage.auth0.com) once you've created an application. **This application must be a `Regular Web Application`**.
+
+- The `SESSION_SECRET` is the key used to encrypt the session and transaction cookies. You can generate a secret using `openssl`:
+
+```shell
+openssl rand -hex 64
+```
+
+- The `APP_BASE_URL` is the URL that your application is running on. When developing locally, this is most commonly `http://localhost:3000`.
+
+> [!IMPORTANT]  
+> You will need to register the following URLs in your Auth0 Application via the [Auth0 Dashboard](https://manage.auth0.com):
+>
+> - Add `http://localhost:3000/auth/callback` to the list of **Allowed Callback URLs**
+> - Add `http://localhost:3000` to the list of **Allowed Logout URLs**
+
+#### Advanced
+
+If you need more control over session management, transaction cookies, or additional settings, here’s a more extensive setup.
+
+##### Customizing the Cookie Stores
+By default, the SDK creates:
+
+- A `Stateless state store` (keeps session data encrypted directly in the cookie), or you can switch to a `Stateful store` (backed by Redis or another DB).
+- A `CookieTransactionStore` for short-lived transaction data.
+
+To tweak these stores—e.g., change cookie names or expiration—or to swap in a custom store, simply instantiate your store and pass it to AuthClient:
+
+```python
+# main.py
+import os
+import uvicorn
+from fastapi import FastAPI
+from starlette.middleware.sessions import SessionMiddleware
+
+from auth0_fastapi.config import Auth0Config
+from auth0_fastapi.auth.auth_client import AuthClient
+from auth0_fastapi.server.routes import router, register_auth_routes
+from auth0_fastapi.errors import register_exception_handlers
+
+app = FastAPI(title="Auth0-FastAPI Example")
+
+# 1) Add Session Middleware, needed if you're storing data in (or rely on) session cookies
+app.add_middleware(SessionMiddleware, secret_key=os.environ.get("SESSION_SECRET"))
+
+# 2) Create an Auth0Config with your Auth0 credentials & app settings
+config = Auth0Config(
+    domain="YOUR_AUTH0_DOMAIN",          # e.g., "dev-1234abcd.us.auth0.com"
+    clientId="YOUR_CLIENT_ID",
+    clientSecret="YOUR_CLIENT_SECRET",
+    appBaseUrl="http://localhost:8000",  # or your production URL
+    secret=os.environ.get("SESSION_SECRET"),
+    mount_routes=True,  # mounts /auth/login, /auth/logout, /auth/callback, /auth/backchannel-logout
+)
+
+# 3) Instantiate the AuthClient
+auth_client = AuthClient(config)
+
+# Attach to the FastAPI app state so internal routes can access it
+app.state.config = config
+app.state.auth_client = auth_client
+
+# 4) Conditionally register routes
+register_auth_routes((router, config))
+
+# 5) Include the SDK’s default routes
+app.include_router(router)
+
+```
+#### 4. Routes
+
+The SDK for Web Applications mounts 4 main routes:
+
+1. `/auth/login`: the login route that the user will be redirected to to initiate an authentication transaction
+2. `/auth/logout`: the logout route that must be added to your Auth0 application's Allowed Logout URLs
+3. `/auth/callback`: the callback route that must be added to your Auth0 application's Allowed Callback URLs
+4. `/auth/backchannel-logout`: the route that will receive a `logout_token` when a configured Back-Channel Logout initiator occurs
+
+To disable this behavior, you can set the `mountRoutes` option to `false` (it's true by default):
+
+```python
+config = Auth0Config(
+    domain="YOUR_AUTH0_DOMAIN",    
+    clientId="YOUR_CLIENT_ID",
+    clientSecret="YOUR_CLIENT_SECRET",
+    appBaseUrl="http://localhost:3000",
+    secret=os.environ.get("SESSION_SECRET"),
+    mount_routes=True,
+)
+```
+
+Additionally, by setting `mount_connect_routes` to `true` (it's false by default) the SDK also can also mount 4 routes useful for account-linking:
+
+1. `/auth/connect`: the route that the user will be redirected to to initiate account linking
+2. `/auth/connect/callback`: the callback route for account linking that must be added to your Auth0 application's Allowed Callback URLs
+3. `/auth/unconnect`: the route that the user will be redirected to to initiate account linking
+4. `/auth/unconnect/callback`: the callback route for account linking that must be added to your Auth0 application's Allowed Callback URLs
+
+> [!IMPORTANT]  
+> When `mount_routes` is set to `false`, setting `mount_connect_routes` has no effect.
+
+#### Protecting Routes
+
+In order to protect a Fastapi route, you can use the SDK's `get_session()` method and pass it through `Depends`:
+
+```python
+from fastapi import Depends, Request, Response, HTTPException, status
+
+def require_session(request: Request, response: Response):
+    store_options = {"request": request, "response": response}
+    # If the user is logged in, get_session() returns a session object
+    session = request.app.state.auth_client.client.get_session(store_options=store_options)
+    if not session:
+        # Not logged in, so redirect or raise an error
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Please log in")
+    return session
+
+@app.get("/profile")
+async def profile(request: Request, response: Response, session=Depends(require_session)):
+    store_options = {"request": request, "response": response}
+    user = await request.app.state.auth_client.client.get_user(store_options=store_options)
+    if not user:
+        return {"error": "User not authenticated"}
+    
+    return {
+        "message": "Your Profile",
+        "user": user,
+        "session_details": session
+    }
+```
+
+> [!IMPORTANT]  
+> The above is to protect server-side rendering routes by the means of a session, and not API routes using a bearer token. 
+
+
+#### Requesting an Access Token to call an API
+
+If you need to call an API on behalf of the user, you want to specify the `audience` parameter when registering the plugin. This will make the SDK request an access token for the specified audience when the user logs in.
+
+```ts
+config = Auth0Config(
+    domain="YOUR_AUTH0_DOMAIN",    
+    clientId="YOUR_CLIENT_ID",
+    clientSecret="YOUR_CLIENT_SECRET",
+    audience='YOUR_AUDIENCE'
+    appBaseUrl="http://localhost:3000",
+    secret=os.environ.get("SESSION_SECRET")
+)
+```
+The `AUTH0_AUDIENCE` is the identifier of the API you want to call. You can find this in the API section of the Auth0 dashboard.
+
 
 ## Feedback
 
@@ -91,7 +252,7 @@ We appreciate feedback and contribution to this repo! Before you get started, pl
 
 - [Auth0's general contribution guidelines](https://github.com/auth0/open-source-template/blob/master/GENERAL-CONTRIBUTING.md)
 - [Auth0's code of conduct guidelines](https://github.com/auth0/auth0-server-js/blob/main/CODE-OF-CONDUCT.md)
-- [This repo's contribution guide](./CONTRIBUTING.md)
+- [This repo's contribution guide](./../../CONTRIBUTING.md)
 
 ### Raise an issue
 
