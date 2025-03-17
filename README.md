@@ -8,12 +8,10 @@ Auth0-Auth-Python Mono Repo, containing SDKs for implementing user authenticatio
 
 
 ## Packages
-- [`auth0-api-python`](./packages/auth0_api_python/README.md) - Will be coming soon
 - [`auth0-server-python`](./packages/auth0_server_js/README.md) - Authentication SDK for Server-Side Applications on Python runtimes (built on Authlib).
 - [`auth0-fastapi`](./packages/auth0_fastapi/README.md) - Authentication SDK for FastAPI Applications.
+- [`auth0-api-python`](./packages/auth0_api_python/README.md) - Will be coming soon
 
-
-3. Follow example instructions
 
 ## Feedback
 
